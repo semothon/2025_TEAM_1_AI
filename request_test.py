@@ -13,7 +13,7 @@ import requests
 
 url = "http://127.0.0.1:5000/happiness"
 files = {
-    "file": open("winter2.jpg", "rb")
+    "file": open("./test_images/test3.jpeg", "rb")
 }
 
 response = requests.post(url, files=files)

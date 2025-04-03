@@ -47,13 +47,13 @@ def compare_images():
     
     bhattacharyya_dist = calculate_histogram_similarity(img1, img2, cv2.HISTCMP_BHATTACHARYYA)
 
-    correlation = calculate_histogram_similarity(img1, img2, cv2.HISTCMP_CORREL)
+    # correlation = calculate_histogram_similarity(img1, img2, cv2.HISTCMP_CORREL)
 
     score = round((1 - bhattacharyya_dist) * 100, 2)
 
+    # "correlation_coefficient": correlation,
+    # "bhattacharyya_distance": bhattacharyya_dist,
     return jsonify({
-        "bhattacharyya_distance": bhattacharyya_dist,
-        "correlation_coefficient": correlation,
         "score" : score
     }), 200
 
@@ -72,11 +72,16 @@ def happiness():
         analysis = DeepFace.analyze(img, actions=['emotion'], enforce_detection=False)
 
         happiness_score = analysis[0]['emotion']['happy']
-
-        happiness_score = round(float(happiness_score), 2)
+        # score = 60 + 40 * (happiness_score / 100) ** 1.5
+        if happiness_score < 90:
+            score = 60 + 20 * (happiness_score / 90) ** 2
+        else:
+            score = 80 + 19 * ((happiness_score - 90) / 9) ** 3 
+        
+        score = min(100.0, round(float(score), 2))
 
         return jsonify({
-            "score": happiness_score
+            "score": score
         }), 200
 
     except Exception as e:
