@@ -1,10 +1,28 @@
 from flask import Flask, request, jsonify
 import cv2
 import numpy as np
+import requests
 from deepface import DeepFace
 
 app = Flask(__name__)
 
+def download_image_from_s3(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
+
+        if response.headers.get("Content-Type", "").startswith("image"):
+            image = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_COLOR)
+            if image is None:
+                return None, "Failed to decode image"
+            return image, None
+        else:
+            return None, f"Invalid content type: {response.headers.get('Content-Type')}"
+
+    except requests.exceptions.RequestException as e:
+        return None, str(e)
+
+    
 def resize_to_smallest(img1, img2):
     h1, w1 = img1.shape[:2]
     h2, w2 = img2.shape[:2]
@@ -31,14 +49,13 @@ def calculate_histogram_similarity(img1, img2, method):
 
 @app.route('/compare_images', methods=['POST'])
 def compare_images():
-    if 'file1' not in request.files or 'file2' not in request.files:
-        return jsonify({"error": "Both images are required"}), 400
+    data = request.get_json()
 
-    file1 = request.files['file1']
-    file2 = request.files['file2']
+    if 'url1' not in data or 'url2' not in data:
+        return jsonify({"error": "Both image URLs are required"}), 400
 
-    img1 = cv2.imdecode(np.frombuffer(file1.read(), np.uint8), cv2.IMREAD_COLOR)
-    img2 = cv2.imdecode(np.frombuffer(file2.read(), np.uint8), cv2.IMREAD_COLOR)
+    img1, err1 = download_image_from_s3(data['url1'])
+    img2, err2 = download_image_from_s3(data['url2'])
 
     if img1 is None or img2 is None:
         return jsonify({"error": "Invalid image data"}), 400
@@ -59,11 +76,12 @@ def compare_images():
 
 @app.route('/happiness', methods=['POST'])
 def happiness():
-    if 'file' not in request.files:
-        return jsonify({"error": "Image file is required"}), 400
+    data = request.get_json()
 
-    file = request.files['file']
-    img = cv2.imdecode(np.frombuffer(file.read(), np.uint8), cv2.IMREAD_COLOR)
+    if 'url' not in data:
+        return jsonify({"error": "Image URL is required"}), 400
+
+    img, err = download_image_from_s3(data['url'])
 
     if img is None:
         return jsonify({"error": "Invalid image data"}), 400
