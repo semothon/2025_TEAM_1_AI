@@ -9,8 +9,8 @@ app = Flask(__name__)
 def download_image_from_s3(url):
     try:
         response = requests.get(url, timeout=10)
-        response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
-
+        response.raise_for_status() 
+        
         if response.headers.get("Content-Type", "").startswith("image"):
             image = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_COLOR)
             if image is None:
@@ -106,4 +106,4 @@ def happiness():
         return jsonify({"error": str(e)}), 500
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
